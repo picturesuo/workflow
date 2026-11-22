@@ -21,11 +21,7 @@ wf_test_identity_paths() {
     print -rl -- \
         "$HOME/Library/Caches/$id" \
         "$HOME/Library/Application Support/$id" \
-        "$HOME/Library/Preferences/$id.plist" \
-        "$HOME/Library/HTTPStorages/$id" \
-        "$HOME/Library/HTTPStorages/$id.binarycookies" \
-        "$HOME/Library/Saved Application State/$id.savedState" \
-        "$HOME/Library/WebKit/$id"
+        "$HOME/Library/Preferences/$id.plist"
     [[ -n $user_cache ]] && print -r -- "${user_cache%/}/$id"
     [[ -n $user_temp ]] && print -r -- "${user_temp%/}/$id"
     return 0

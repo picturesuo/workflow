@@ -62,6 +62,16 @@ if [[ $bundle_id != com.picturesuo.WorkFlow.fmtest.perf* ]]; then
     exit 1
 fi
 
+# macOS keeps caches per bundle id, CoreML's compiled-model cache alone being
+# gigabytes, so remove this identity's caches and preferences when the
+# benchmark ends, however it ends. The build keeps its identity for
+# --skip-build, which then starts from a cold model cache too.
+source "$ROOT/Scripts/test-identity.zsh"
+trap 'wf_test_identity_remove "$bundle_id" || true' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+
 python3 -I - "$out/environment.json" "$label" "$bundle_id" "$iterations" <<'PY'
 import json, platform, subprocess, sys
 path, label, bundle_id, iterations = sys.argv[1:5]

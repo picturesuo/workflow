@@ -72,6 +72,7 @@ seed_defaults() {
 
 source "$SCRIPT_DIR/../test-identity.zsh"
 cleanup_identity() {
+    wf_test_identity_stop_host "$APP/Contents/MacOS/WorkFlow" || true
     wf_test_identity_remove "$BUNDLE_ID" || true
 }
 
@@ -82,12 +83,13 @@ if defaults read "$BUNDLE_ID" >/dev/null 2>&1 || [[ -e "$HOME/Library/Applicatio
     exit 2
 fi
 trap cleanup_identity EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/workflow-cold-launch.XXXXXX")
 visible_windows="$scratch/visible-windows"
 xcrun swiftc -O -o "$visible_windows" "$SCRIPT_DIR/visible-windows.swift"
-
-seed_defaults
 
 # One launch: prints a JSON line with the three timings.
 launch_once() {
@@ -144,8 +146,13 @@ print(json.dumps(row, sort_keys=True))
 PY
 }
 
-launch_once 0 1
-for run in $(seq 1 "$RUNS"); do
-    launch_once "$run" 0
-done
+# In a subshell: zsh skips the EXIT trap when the shell exits from inside a
+# function, on a failure or a signal, and the cleanup must run then too.
+(
+    seed_defaults
+    launch_once 0 1
+    for run in $(seq 1 "$RUNS"); do
+        launch_once "$run" 0
+    done
+)
 rm -rf -- "$scratch"

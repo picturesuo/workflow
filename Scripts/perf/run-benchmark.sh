@@ -64,10 +64,26 @@ fi
 
 # macOS keeps caches per bundle id, CoreML's compiled-model cache alone being
 # gigabytes, so remove this identity's caches and preferences when the
-# benchmark ends, however it ends. The build keeps its identity for
+# benchmark ends, however it ends, after stopping whatever is still running
+# from this build and would recreate them. The build keeps its identity for
 # --skip-build, which then starts from a cold model cache too.
 source "$ROOT/Scripts/test-identity.zsh"
-trap 'wf_test_identity_remove "$bundle_id" || true' EXIT
+suite_pid=
+stop_traced_suite() {
+    [[ -n $suite_pid ]] || return 0
+    pkill -TERM -P "$suite_pid" 2>/dev/null || true
+    kill "$suite_pid" 2>/dev/null || true
+    suite_pid=
+}
+cleanup() {
+    local exit_status=$?
+    trap - EXIT INT TERM HUP
+    stop_traced_suite
+    wf_test_identity_stop_host "$APP/Contents/MacOS/WorkFlow" || true
+    wf_test_identity_remove "$bundle_id" || true
+    exit $exit_status
+}
+trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
@@ -138,11 +154,12 @@ if $trace; then
         sleep 15
         touch "$trace_flows.go"
         wait $suite_pid || print -u2 "The traced suite exited with $?"
+        suite_pid=
         kill -INT $trace_pid 2>/dev/null || true
         wait $trace_pid || print -u2 "xctrace exited with $?; see $out/xctrace.log"
     else
         print -u2 "The traced suite never published its pid; trace skipped."
-        kill $suite_pid 2>/dev/null || true
+        stop_traced_suite
     fi
 fi
 

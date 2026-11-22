@@ -23,7 +23,7 @@ cd "$ROOT"
 source "$ROOT/Scripts/test-identity.zsh"
 export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}
 
-wf_test_identity_sweep_stale
+wf_test_identity_sweep_stale || print -u2 -r -- "test.sh: could not remove every stale test identity; continuing"
 
 if [[ -n ${WORKFLOW_TEST_BUNDLE_ID:-} ]]; then
     bundle_id=$WORKFLOW_TEST_BUNDLE_ID
@@ -45,13 +45,7 @@ host="$ROOT/build/Build/Products/Debug/WorkFlow.app/Contents/MacOS/WorkFlow"
 cleanup() {
     local exit_status=$?
     trap - EXIT INT TERM HUP
-    # An interrupted xcodebuild can leave its test host running, and the host
-    # would recreate its caches after they are removed.
-    if pkill -TERM -f "^$host( |$)" 2>/dev/null; then
-        local deadline=$(( SECONDS + 10 ))
-        while pgrep -f "^$host( |$)" >/dev/null && (( SECONDS < deadline )); do sleep 0.2; done
-        pkill -KILL -f "^$host( |$)" 2>/dev/null || true
-    fi
+    wf_test_identity_stop_host "$host" || true
     if $owns_identity; then
         wf_test_identity_remove "$bundle_id" || true
     fi

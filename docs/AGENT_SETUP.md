@@ -20,17 +20,10 @@ This runbook lets a local coding agent install and verify WorkFlow without recei
    brew install cmake libomp rust
    ```
 
-3. Run the focused deterministic tests before installation. The test host runs under its own per-run bundle identifier, so the tests never read or change WorkFlow's preferences and concurrent runs never share one preferences domain:
+3. Run the focused deterministic tests before installation. The test host runs under its own per-run bundle identifier, so the tests never read or change WorkFlow's preferences and concurrent runs never share one preferences domain; `Scripts/test.sh` removes that identity's caches and preferences when the run ends:
 
    ```bash
-   WORKFLOW_TEST_BUNDLE_ID="com.picturesuo.WorkFlow.fmtest.run$$"
-   DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-   xcodebuild test \
-     -scheme OpenSuperWhisper \
-     -derivedDataPath build \
-     -destination 'platform=macOS,arch=arm64' \
-     CODE_SIGNING_ALLOWED=NO \
-     PRODUCT_BUNDLE_IDENTIFIER="$WORKFLOW_TEST_BUNDLE_ID" \
+   ./Scripts/test.sh \
      -only-testing:OpenSuperWhisperTests/RenamedAppMigrationTests \
      -only-testing:OpenSuperWhisperTests/LatestDictationGateTests \
      -only-testing:OpenSuperWhisperTests/LatestDictationDeliveryTests \

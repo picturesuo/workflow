@@ -80,23 +80,10 @@ Requirements: Apple Silicon, macOS 14 or newer, Xcode, Homebrew, Rust, and Git. 
 <summary>Headless test command</summary>
 
 ```bash
-WORKFLOW_TEST_BUNDLE_ID="com.picturesuo.WorkFlow.fmtest.run$$"
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-xcodebuild test \
-  -scheme OpenSuperWhisper \
-  -derivedDataPath build \
-  -destination 'platform=macOS,arch=arm64' \
-  -only-testing:OpenSuperWhisperTests \
-  -skip-testing:OpenSuperWhisperTests/ClipboardUtilPasteIntegrationTests \
-  -skip-testing:OpenSuperWhisperTests/ClipboardUtilKeyboardLayoutTests \
-  -skip-testing:OpenSuperWhisperTests/KeyboardLayoutProviderTests \
-  -skip-testing:OpenSuperWhisperTests/IndicatorWindowGeometryTests/testWindowKeepsPanelSizeAfterPresent \
-  -skip-testing:OpenSuperWhisperTests/ClipboardRestoreTests/testMissingTargetDoesNotRedirectPasteAndKeepsTranscriptOnClipboard \
-  CODE_SIGNING_ALLOWED=NO \
-  PRODUCT_BUNDLE_IDENTIFIER="$WORKFLOW_TEST_BUNDLE_ID"
+./Scripts/test.sh
 ```
 
-The skipped suites launch TextEdit, switch the keyboard layout, or show a panel, and the skipped `ClipboardRestoreTests` case overwrites the system clipboard; run them interactively, by hand. The separate bundle identifier keeps the test host out of WorkFlow's own preferences, and the shell PID suffix gives each run its own preferences domain so concurrent runs do not overwrite each other. Pass the same `WORKFLOW_TEST_BUNDLE_ID` to `build-for-testing` and `test-without-building` when you split the steps. Releases follow [docs/RELEASING.md](docs/RELEASING.md).
+The skipped suites launch TextEdit, switch the keyboard layout, or show a panel, and the skipped `ClipboardRestoreTests` case overwrites the system clipboard; run them interactively, by hand. `Scripts/test.sh` runs `xcodebuild test` with those skips under its own bundle identifier, `com.picturesuo.WorkFlow.fmtest.run<pid>`, which keeps the test host out of WorkFlow's own preferences and gives each run its own preferences domain so concurrent runs do not overwrite each other. macOS keeps a CoreML compiled-model cache of up to tens of gigabytes per bundle identifier, so the script removes that identity's caches, preferences, and Application Support folder when the run ends, passed, failed, or interrupted, and also clears what earlier runs whose process has ended left behind. Pass `-only-testing:` or `-skip-testing:` arguments to run a different selection. When you split the steps by hand, pass the same `WORKFLOW_TEST_BUNDLE_ID` to `build-for-testing` and `test-without-building`, then run `./Scripts/clean-test-identity.sh "$WORKFLOW_TEST_BUNDLE_ID"`. Releases follow [docs/RELEASING.md](docs/RELEASING.md).
 
 The pure state-machine cores in `DictationCore/` have their own fast suite: `swift test --package-path DictationCore` (add `--sanitize=thread` for Thread Sanitizer). The flow benchmark is in `Scripts/perf/`, and its numbers are in [docs/perf/baseline.md](docs/perf/baseline.md).
 

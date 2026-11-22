@@ -24,7 +24,10 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild test-without
   -clonedSourcePackagesDirPath SourcePackages -destination 'platform=macOS,arch=arm64' \
   CODE_SIGNING_ALLOWED=NO PRODUCT_BUNDLE_IDENTIFIER="$WORKFLOW_TEST_BUNDLE_ID" \
   -only-testing:OpenSuperWhisperTests/LiveDictationBenchmarkTests
+./Scripts/clean-test-identity.sh "$WORKFLOW_TEST_BUNDLE_ID"
 ```
+
+The last line removes the caches and preferences macOS kept for the per-run identity; CoreML's compiled-model cache alone is gigabytes per bundle identifier. Run it once you are done with that build's identity, and `./Scripts/clean-test-identity.sh` with no arguments clears the identities of earlier shells that have exited.
 
 The suites skip unless `TEST_RUNNER_WF_BENCH_CORPUS` is set:
 

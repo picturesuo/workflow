@@ -9,7 +9,7 @@ Times WorkFlow's user flows with the app's own `os_signpost` intervals (`OpenSup
 Scripts/perf/run-benchmark.sh --iterations 12 --label baseline --out <results folder>
 ```
 
-The script builds Release for testing into `build.noindex/perf-dd` under a per-run bundle id `com.picturesuo.WorkFlow.fmtest.perf<pid>`, so nothing reads WorkFlow's own preferences, History or Keychain. It then runs `PerfFlowBenchmarkTests` hosted in that build, runs `cold-launch.sh`, and writes `summary.md`, `summary.json` and `environment.json` (load average, Mac model, macOS, Xcode, commit) to the results folder.
+The script builds Release for testing into `build.noindex/perf-dd` under a per-run bundle id `com.picturesuo.WorkFlow.fmtest.perf<pid>`, so nothing reads WorkFlow's own preferences, History or Keychain. It then runs `PerfFlowBenchmarkTests` hosted in that build, runs `cold-launch.sh`, and writes `summary.md`, `summary.json` and `environment.json` (load average, Mac model, macOS, Xcode, commit) to the results folder. When it ends, whether it finishes, fails or is interrupted, it stops anything still running from that build and removes the caches, preferences and Application Support folder macOS kept for that bundle id, CoreML's compiled-model cache among them, so every run, `--skip-build` included, starts with a cold model cache. Only a run killed outright with SIGKILL cannot clean up; `Scripts/clean-test-identity.sh <bundle id>` removes what it left.
 
 - `--skip-build` reuses the last build and its bundle id.
 - `--skip-launch` skips the cold-launch step.
@@ -57,7 +57,7 @@ All times are milliseconds on a monotonic clock. p95 is nearest-rank, so with 11
 `RecordingMeterCostBenchmarkTests` measures what the main thread pays while a recording's level meter ticks: main-thread CPU per second, run-loop wake-ups per second and SwiftUI layout passes per second, for the main window, the dictation bar alone and the indicator capsule. It skips unless `TEST_RUNNER_WF_METER_COST_OUT` names a JSON-lines file, so the normal test command is unaffected:
 
 ```bash
-TEST_RUNNER_WF_METER_COST_OUT=<file> xcodebuild test <the README's options> \
+TEST_RUNNER_WF_METER_COST_OUT=<file> ./Scripts/test.sh \
   -only-testing:OpenSuperWhisperTests/RecordingMeterCostBenchmarkTests
 ```
 

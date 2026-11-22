@@ -8,8 +8,8 @@
 # APP must be built with BUNDLE_ID, and BUNDLE_ID must start with
 # com.picturesuo.WorkFlow.fmtest.perf so the launch never reads WorkFlow's own
 # preferences or History. The app is opened in the background (open -g), its
-# defaults domain is seeded so launch is silent, and both the domain and its
-# Application Support folder are deleted afterwards.
+# defaults domain is seeded so launch is silent, and the domain, its
+# Application Support folder and its caches are deleted afterwards.
 #
 # BLOCKED BY DEFAULT: applicationDidFinishLaunching always runs the legacy
 # credential migration, and its Keychain service names are fixed to
@@ -70,27 +70,27 @@ seed_defaults() {
     defaults write "$BUNDLE_ID" fluidAudioModelVersion -string v3
 }
 
+source "$SCRIPT_DIR/../test-identity.zsh"
 cleanup_identity() {
-    defaults delete "$BUNDLE_ID" >/dev/null 2>&1 || true
-    local support="$HOME/Library/Application Support/$BUNDLE_ID"
-    if [[ $BUNDLE_ID == com.picturesuo.WorkFlow.fmtest.perf* && -d $support ]]; then
-        rm -rf -- "$support"
-    fi
+    wf_test_identity_stop_host "$APP/Contents/MacOS/WorkFlow" || true
+    wf_test_identity_remove "$BUNDLE_ID" || true
 }
 
-# Cleanup deletes this identity's preferences and Application Support folder,
-# so refuse an identity that already has either: it was not created here.
+# Cleanup deletes this identity's preferences, Application Support folder and
+# caches, so refuse an identity that already has preferences or an Application
+# Support folder: it was not created here.
 if defaults read "$BUNDLE_ID" >/dev/null 2>&1 || [[ -e "$HOME/Library/Application Support/$BUNDLE_ID" ]]; then
     print -u2 "cold-launch: identity $BUNDLE_ID already has data; refusing so nothing this run did not create is deleted"
     exit 2
 fi
 trap cleanup_identity EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/workflow-cold-launch.XXXXXX")
 visible_windows="$scratch/visible-windows"
 xcrun swiftc -O -o "$visible_windows" "$SCRIPT_DIR/visible-windows.swift"
-
-seed_defaults
 
 # One launch: prints a JSON line with the three timings.
 launch_once() {
@@ -147,8 +147,13 @@ print(json.dumps(row, sort_keys=True))
 PY
 }
 
-launch_once 0 1
-for run in $(seq 1 "$RUNS"); do
-    launch_once "$run" 0
-done
+# In a subshell: zsh skips the EXIT trap when the shell exits from inside a
+# function, on a failure or a signal, and the cleanup must run then too.
+(
+    seed_defaults
+    launch_once 0 1
+    for run in $(seq 1 "$RUNS"); do
+        launch_once "$run" 0
+    done
+)
 rm -rf -- "$scratch"

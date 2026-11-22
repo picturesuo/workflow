@@ -8,8 +8,8 @@
 # APP must be built with BUNDLE_ID, and BUNDLE_ID must start with
 # com.picturesuo.WorkFlow.fmtest.perf so the launch never reads WorkFlow's own
 # preferences or History. The app is opened in the background (open -g), its
-# defaults domain is seeded so launch is silent, and both the domain and its
-# Application Support folder and caches are deleted afterwards.
+# defaults domain is seeded so launch is silent, and the domain, its
+# Application Support folder and its caches are deleted afterwards.
 #
 # BLOCKED BY DEFAULT: applicationDidFinishLaunching always runs the legacy
 # credential migration, and its Keychain service names are fixed to
@@ -76,8 +76,9 @@ cleanup_identity() {
     wf_test_identity_remove "$BUNDLE_ID" || true
 }
 
-# Cleanup deletes this identity's preferences and Application Support folder,
-# so refuse an identity that already has either: it was not created here.
+# Cleanup deletes this identity's preferences, Application Support folder and
+# caches, so refuse an identity that already has preferences or an Application
+# Support folder: it was not created here.
 if defaults read "$BUNDLE_ID" >/dev/null 2>&1 || [[ -e "$HOME/Library/Application Support/$BUNDLE_ID" ]]; then
     print -u2 "cold-launch: identity $BUNDLE_ID already has data; refusing so nothing this run did not create is deleted"
     exit 2

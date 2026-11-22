@@ -57,7 +57,7 @@ All times are milliseconds on a monotonic clock. p95 is nearest-rank, so with 11
 `RecordingMeterCostBenchmarkTests` measures what the main thread pays while a recording's level meter ticks: main-thread CPU per second, run-loop wake-ups per second and SwiftUI layout passes per second, for the main window, the dictation bar alone and the indicator capsule. It skips unless `TEST_RUNNER_WF_METER_COST_OUT` names a JSON-lines file, so the normal test command is unaffected:
 
 ```bash
-TEST_RUNNER_WF_METER_COST_OUT=<file> xcodebuild test <the README's options> \
+TEST_RUNNER_WF_METER_COST_OUT=<file> ./Scripts/test.sh \
   -only-testing:OpenSuperWhisperTests/RecordingMeterCostBenchmarkTests
 ```
 
